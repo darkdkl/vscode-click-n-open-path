@@ -15,7 +15,9 @@ Paths outside of quotes work too — in comments, YAML, Markdown, shell scripts 
 file: data/train.csv:10:5
 ```
 
-It works in any language. Only paths to existing files become links, so plain text isn't underlined.
+It works in any language. Like Go to Definition, a path is underlined only while you hover it with Ctrl (Cmd on macOS) held, and F12 / Peek work on it too. Only paths to existing files can be opened.
+
+To underline all the paths that can be opened, all the time, turn on `clickOpenPath.underline`.
 
 ### Install
 
@@ -33,20 +35,22 @@ A relative path is resolved against, in this order:
 
 The first folder where the file exists wins.
 
-### When links are updated
+### When the underline is updated
 
-VS Code recomputes links when you open a file or switch to it, and about a second after you stop typing. A file created or deleted on disk doesn't update the links by itself; enable `clickOpenPath.autoRefresh` for that. It watches the workspace folders only.
+By default a path is looked up when you hover or click it, so it's always up to date.
+
+With `clickOpenPath.underline`, VS Code finds the paths when you open a file or switch to it, and about a second after you stop typing. A file created or deleted on disk doesn't update the underline by itself: edit the file or reopen it.
 
 ### Settings
 
 | Setting | Default | Description |
 | --- | --- | --- |
+| `clickOpenPath.underline` | `false` | Always underline the paths that can be opened. When off, a path is underlined only while hovered with Ctrl/Cmd held |
 | `clickOpenPath.searchRoots` | `[]` | Extra folders to resolve relative paths against: absolute, or relative to the workspace folder |
 | `clickOpenPath.unquotedPaths` | `true` | Also detect paths outside of quotes. Such paths must contain a `/` |
-| `clickOpenPath.autoRefresh` | `false` | Recompute links when files are created or deleted in the workspace, and when these settings change |
-| `clickOpenPath.maxFileSize` | `1000000` | Skip documents larger than this many characters |
+| `clickOpenPath.maxFileSize` | `1000000` | Only with `underline`: skip documents larger than this many characters |
 
-If Ctrl+click doesn't open links, check `editor.multiCursorModifier`: with `ctrlCmd`, links open with Alt+click.
+If Ctrl+click doesn't open paths, check `editor.multiCursorModifier`: with `ctrlCmd`, they open with Alt+click.
 
 ### Known limitations
 

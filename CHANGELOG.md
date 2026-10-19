@@ -1,5 +1,12 @@
 # Click'n'Open Path Changelog
 
+## 0.4.0
+
+- Paths aren't underlined all the time any more: a path is underlined only while you hover it with Ctrl (Cmd on macOS) held, like Go to Definition. F12 and Peek work on paths too
+- Setting `clickOpenPath.underline` (off by default) brings back the permanent underline
+- Setting `clickOpenPath.autoRefresh` is removed: paths are now looked up when you hover or click them, so they're always up to date
+- Changes of the settings apply right away
+
 ## 0.3.0
 
 - Icon

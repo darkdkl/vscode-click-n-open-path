@@ -3,7 +3,7 @@
   "displayName": "Click'n'Open Path",
   "description": "Ctrl/Cmd+Click a file path in your code, comments or configs to open the file.",
   "icon": "images/icon.png",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "dark-dmake",
   "license": "SEE LICENSE IN LICENSE.txt",
   "bugs": {
@@ -49,6 +49,11 @@
     "configuration": {
       "title": "Click'n'Open Path",
       "properties": {
+        "clickOpenPath.underline": {
+          "type": "boolean",
+          "default": false,
+          "description": "Always underline the paths that can be opened. When off, a path is underlined only while you hover it with Ctrl (Cmd on macOS) held, like Go to Definition, and F12 / Peek work on it."
+        },
         "clickOpenPath.searchRoots": {
           "type": "array",
           "items": {
@@ -62,15 +67,10 @@
           "default": true,
           "description": "Also detect paths outside of quotes (comments, YAML, Markdown, shell). Such paths must contain a '/'."
         },
-        "clickOpenPath.autoRefresh": {
-          "type": "boolean",
-          "default": false,
-          "description": "Recompute links when files are created or deleted in the workspace, and when these settings change. Without it, links update only after editing or reopening a file."
-        },
         "clickOpenPath.maxFileSize": {
           "type": "number",
           "default": 1000000,
-          "description": "Skip link detection in documents larger than this many characters."
+          "markdownDescription": "Only with `clickOpenPath.underline`: skip documents larger than this many characters."
         }
       }
     }
