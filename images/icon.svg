@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <circle cx="128" cy="128" r="124" fill="#4fc3f7"/>
+  <circle cx="128" cy="128" r="115" fill="#1d2633"/>
+
+  <path d="M64,44 H156 L192,80 V212 H64 Z" fill="#f4efe1"/>
+  <path d="M156,44 V80 H192 Z" fill="#c9c2ad"/>
+
+  <g stroke="#9a9484" stroke-width="10" stroke-linecap="round">
+    <line x1="84" y1="98" x2="134" y2="98"/>
+    <line x1="84" y1="122" x2="166" y2="122"/>
+    <line x1="84" y1="194" x2="122" y2="194"/>
+  </g>
+
+  <g stroke="#0089c9" stroke-linecap="round">
+    <line x1="84" y1="148" x2="142" y2="148" stroke-width="12"/>
+    <line x1="84" y1="164" x2="142" y2="164" stroke-width="5"/>
+  </g>
+
+  <g stroke="#f2b632" stroke-width="7" stroke-linecap="round">
+    <line x1="142" y1="140" x2="142" y2="126"/>
+    <line x1="153" y1="143" x2="163" y2="133"/>
+    <line x1="156" y1="154" x2="170" y2="154"/>
+  </g>
+
+  <polygon transform="translate(142,154) scale(2.1)" points="0,0 0,34 8,26.5 13.5,39 19.5,36.5 14,24 25,24" fill="#ffffff" stroke="#1d2633" stroke-width="2.6" stroke-linejoin="round"/>
+</svg>
