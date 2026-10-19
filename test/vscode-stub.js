@@ -6,6 +6,8 @@ const DEFAULTS = Object.fromEntries(
 
 class Position {
   constructor(line, character) {
+    if (line < 0) throw new Error('Illegal argument: line must be non-negative');
+    if (character < 0) throw new Error('Illegal argument: character must be non-negative');
     this.line = line;
     this.character = character;
   }
@@ -48,6 +50,7 @@ class DocumentLink {
 
 const state = {
   overrides: {},
+  folderOverrides: {},
   workspaceFolders: [],
   configListeners: new Set(),
   registrations: [],
@@ -65,11 +68,13 @@ module.exports = {
   Uri,
   DocumentLink,
   workspace: {
-    getConfiguration(section) {
+    getConfiguration(section, scope) {
+      const folder = scope && Object.keys(state.folderOverrides).find((f) => scope.fsPath.startsWith(f + '/'));
+      const layers = [folder && state.folderOverrides[folder], state.overrides, DEFAULTS].filter(Boolean);
       return {
         get(key) {
           const full = `${section}.${key}`;
-          return full in state.overrides ? state.overrides[full] : DEFAULTS[full];
+          return layers.find((layer) => full in layer)[full];
         },
       };
     },

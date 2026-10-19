@@ -1,4 +1,5 @@
 const Module = require('module');
+const fs = require('fs');
 const path = require('path');
 
 const resolveFilename = Module._resolveFilename;
@@ -22,6 +23,7 @@ function reset() {
   if (context) context.subscriptions.forEach((d) => d.dispose());
   context = null;
   state.overrides = {};
+  state.folderOverrides = {};
   state.workspaceFolders = [{ uri: vscode.Uri.file(PROJECT) }];
   state.configListeners.clear();
   state.registrations = [];
@@ -37,6 +39,12 @@ function activate(settings = {}) {
 
 function setSettings(settings) {
   for (const [key, value] of Object.entries(settings)) state.overrides[`clickOpenPath.${key}`] = value;
+}
+
+function setFolderSettings(folder, settings) {
+  state.folderOverrides[folder] = Object.fromEntries(
+    Object.entries(settings).map(([key, value]) => [`clickOpenPath.${key}`, value])
+  );
 }
 
 function changeSettings(settings) {
@@ -65,7 +73,7 @@ function createDocument(text, file = 'main.py', scheme = 'file') {
   const lines = text.split('\n');
   const offsetAt = ({ line, character }) =>
     lines.slice(0, line).reduce((sum, l) => sum + l.length + 1, 0) + character;
-  const fsPath = scheme === 'file' ? path.join(PROJECT, file) : file;
+  const fsPath = scheme === 'untitled' ? file : path.join(PROJECT, file);
   return {
     uri: { scheme, fsPath },
     getText: (range) => (range ? text.slice(offsetAt(range.start), offsetAt(range.end)) : text),
@@ -79,7 +87,9 @@ function createDocument(text, file = 'main.py', scheme = 'file') {
       return new vscode.Position(line, offset);
     },
     positionOf(needle, shift = 0) {
-      return this.positionAt(text.indexOf(needle) + shift);
+      const index = text.indexOf(needle);
+      if (index < 0) throw new Error(`"${needle}" is not in the document`);
+      return this.positionAt(index + shift);
     },
   };
 }
@@ -97,9 +107,9 @@ async function links(text, settings = {}, file, scheme) {
   }));
 }
 
-async function definition(text, needle, shift = 0, settings = {}, file) {
+async function definition(text, needle, shift = 0, settings = {}, file, scheme) {
   activate(settings);
-  const doc = createDocument(text, file);
+  const doc = createDocument(text, file, scheme);
   const result = await provider('definition').provideDefinition(doc, doc.positionOf(needle, shift));
   if (!result) return null;
   const [link] = result;
@@ -111,6 +121,21 @@ async function definition(text, needle, shift = 0, settings = {}, file) {
   };
 }
 
+async function watchStat(run, exists = () => false) {
+  const original = fs.promises.stat;
+  const calls = [];
+  fs.promises.stat = async (p) => {
+    calls.push(p);
+    if (exists(p)) return { isFile: () => true };
+    return original(p);
+  };
+  try {
+    return { result: await run(), calls };
+  } finally {
+    fs.promises.stat = original;
+  }
+}
+
 module.exports = {
   FIXTURES,
   PROJECT,
@@ -118,9 +143,11 @@ module.exports = {
   vscode,
   reset,
   activate,
+  setFolderSettings,
   changeSettings,
   fireConfigChange,
   activeRegistrations,
   links,
   definition,
+  watchStat,
 };

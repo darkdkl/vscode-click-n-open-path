@@ -1,5 +1,16 @@
 # Click'n'Open Path Changelog
 
+## 0.5.0
+
+- Jupyter notebooks: paths in cells are resolved against the notebook folder
+- Windows paths: drive letters (`C:/data/a.csv`) and backslashes, also escaped in strings (`"data\\a.csv"`). On macOS and Linux backslashes are read as `/`
+- Paths outside of quotes may contain non-Latin letters (`docs/отчёт.md`), and are found after `=` (`--config=conf/app.yml`, `.env` files)
+- A quoted path between two apostrophes (`it's in "my data/a.csv", isn't it`) is no longer missed, and strings with escaped quotes are read correctly
+- `path:10:0` (columns from 0, as in pylint) and `path:0` no longer break Go to Definition
+- Network paths (`//server/share`, `/net/...`) are never checked, so a file from an untrusted repository can't make VS Code connect to another computer
+- `clickOpenPath.searchRoots`, `unquotedPaths` and `maxFileSize` can be set per workspace folder
+- Fewer file system checks: results are kept for 2 seconds, version numbers like `"1.2.3"` aren't looked up, and only 1000 characters around the cursor are read in very long lines
+
 ## 0.4.0
 
 - Paths aren't underlined all the time any more: a path is underlined only while you hover it with Ctrl (Cmd on macOS) held, like Go to Definition. F12 and Peek work on paths too

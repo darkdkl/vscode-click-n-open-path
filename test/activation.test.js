@@ -16,9 +16,13 @@ test('underline: true registers document links instead', () => {
   assert.deepEqual(kinds(), ['link']);
 });
 
-test('saved files and unsaved documents of any language are covered', () => {
+test('saved files, unsaved documents and notebook cells of any language are covered', () => {
   activate();
-  assert.deepEqual(activeRegistrations()[0].selector, [{ scheme: 'file' }, { scheme: 'untitled' }]);
+  assert.deepEqual(activeRegistrations()[0].selector, [
+    { scheme: 'file' },
+    { scheme: 'untitled' },
+    { scheme: 'vscode-notebook-cell' },
+  ]);
 });
 
 test('switching underline replaces the provider right away', () => {

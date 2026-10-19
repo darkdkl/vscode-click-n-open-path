@@ -3,7 +3,7 @@
   "displayName": "Click'n'Open Path",
   "description": "Ctrl/Cmd+Click a file path in your code, comments or configs to open the file.",
   "icon": "images/icon.png",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "dark-dmake",
   "license": "SEE LICENSE IN LICENSE.txt",
   "bugs": {
@@ -56,6 +56,7 @@
         },
         "clickOpenPath.searchRoots": {
           "type": "array",
+          "scope": "resource",
           "items": {
             "type": "string"
           },
@@ -64,11 +65,13 @@
         },
         "clickOpenPath.unquotedPaths": {
           "type": "boolean",
+          "scope": "resource",
           "default": true,
-          "description": "Also detect paths outside of quotes (comments, YAML, Markdown, shell). Such paths must contain a '/'."
+          "description": "Also detect paths outside of quotes (comments, YAML, Markdown, shell, .env). Such paths must contain a '/' or '\\'."
         },
         "clickOpenPath.maxFileSize": {
           "type": "number",
+          "scope": "resource",
           "default": 1000000,
           "markdownDescription": "Only with `clickOpenPath.underline`: skip documents larger than this many characters."
         }

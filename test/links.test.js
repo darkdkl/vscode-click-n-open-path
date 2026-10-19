@@ -1,7 +1,7 @@
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
-const { FIXTURES, HOME, reset, links } = require('./helpers');
+const { FIXTURES, PROJECT, HOME, reset, links, setFolderSettings, watchStat } = require('./helpers');
 
 beforeEach(reset);
 
@@ -43,6 +43,11 @@ test(':line and :line:column open the file at that position', async () => {
   ]);
 });
 
+test('line or column 0 opens line 1 or column 1', async () => {
+  const result = await links('a = "data/a.csv:0"\nb = "data/a.csv:10:0"');
+  assert.deepEqual(result.map((l) => l.fragment), ['L1', 'L10,1']);
+});
+
 test('~ is expanded to the home folder', async () => {
   const [link] = await links('cfg = "~/notes.txt"');
   assert.equal(link.text, '~/notes.txt');
@@ -68,6 +73,68 @@ test('paths outside of quotes: comments, YAML, Markdown, shell', async () => {
 test('file:// URLs to existing files are left to VS Code', async () => {
   const url = `file://${path.join(FIXTURES, 'project', 'data', 'a.csv')}`;
   assert.deepEqual(await links(`see ${url}\nx = "${url}"`), []);
+});
+
+test('a path after = in options, .env files and Makefiles', async () => {
+  const result = await links('run --config=docs/guide.md\nDATA_PATH=data/a.csv');
+  assert.deepEqual(result.map((l) => l.text), ['docs/guide.md', 'data/a.csv']);
+});
+
+test('non-ASCII names outside of quotes', async () => {
+  assert.deepEqual((await links('# см. docs/отчёт.md')).map((l) => l.target), ['docs/отчёт.md']);
+});
+
+test('apostrophes around a quoted path do not hide it', async () => {
+  const result = await links(`# it's in "my data/a b.csv", isn't it`);
+  assert.deepEqual(result.map((l) => l.text), ['my data/a b.csv']);
+  const quotedOnly = await links(`# it's in "data/a.csv", isn't it`, { unquotedPaths: false });
+  assert.deepEqual(quotedOnly.map((l) => l.text), ['data/a.csv']);
+});
+
+test('backslashes: escaped, raw strings and unquoted', async () => {
+  const text = ['a = "data\\\\a.csv"', 'b = r"docs\\guide.md"', 'see data\\a.csv', 'msg = "say \\"hi\\" to docs/guide.md"'].join('\n');
+  assert.deepEqual((await links(text)).map((l) => [l.text, l.target]), [
+    ['data\\\\a.csv', 'data/a.csv'],
+    ['docs\\guide.md', 'docs/guide.md'],
+    ['data\\a.csv', 'data/a.csv'],
+    ['docs/guide.md', 'docs/guide.md'],
+  ]);
+});
+
+test('a Windows drive letter stays part of the path', async () => {
+  const { result } = await watchStat(
+    () => links('see C:/win/data.csv'),
+    (p) => p.endsWith('C:/win/data.csv')
+  );
+  assert.deepEqual(result.map((l) => l.text), ['C:/win/data.csv']);
+});
+
+test('network paths are never touched', async () => {
+  const text = [
+    'a = "//evil.example/share/a.txt"',
+    'see //evil.example/share/b.txt',
+    'c = "\\\\\\\\evil.example\\\\share\\\\c.txt"',
+    'see \\\\evil.example\\share\\d.txt',
+    'e = "/net/evil.example/e.txt"',
+    'f = "../../../../../../../../../../net/evil.example/f.txt"',
+  ].join('\n');
+  const { result, calls } = await watchStat(() => links(text), () => true);
+  assert.deepEqual(result, []);
+  assert.deepEqual(calls.filter((p) => p.includes('evil.example')), []);
+});
+
+test('version numbers are not looked up on disk', async () => {
+  const { calls } = await watchStat(() => links('v = "1.2.3"\nw = "10.20.30-beta.1"'));
+  assert.deepEqual(calls, []);
+});
+
+test('the file system is not asked again right away', async () => {
+  const text = 'x = "data/cache-probe.csv"';
+  const { calls } = await watchStat(async () => {
+    await links(text);
+    await links(text);
+  });
+  assert.equal(calls.filter((p) => p.endsWith('cache-probe.csv')).length, 1);
 });
 
 test('a path inside a quoted sentence is found once', async () => {
@@ -100,6 +167,16 @@ test('unquotedPaths: false keeps only the quoted paths', async () => {
 
 test('documents larger than maxFileSize are skipped', async () => {
   assert.deepEqual(await links('x = "data/a.csv"', { maxFileSize: 5 }), []);
+});
+
+test('notebook cells resolve against the notebook folder', async () => {
+  const result = await links('a = "helper.py"\nb = "data/a.csv"', {}, 'src/analysis.ipynb', 'vscode-notebook-cell');
+  assert.deepEqual(result.map((l) => l.target), ['src/helper.py', 'data/a.csv']);
+});
+
+test('settings of the workspace folder apply', async () => {
+  setFolderSettings(PROJECT, { searchRoots: ['lib'] });
+  assert.deepEqual((await links('x = "util.py"')).map((l) => l.target), ['lib/util.py']);
 });
 
 test('an unsaved document uses the workspace folder', async () => {

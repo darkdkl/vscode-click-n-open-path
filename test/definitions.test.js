@@ -19,6 +19,23 @@ test(':line:column points to that position, zero-based', async () => {
   assert.deepEqual([result.line, result.character], [9, 3]);
 });
 
+test('line or column 0 from tools like pylint is clamped', async () => {
+  const pylint = await definition('data/a.csv:10:0: C0114 missing docstring', 'a.csv');
+  assert.deepEqual([pylint.text, pylint.line, pylint.character], ['data/a.csv:10:0', 9, 0]);
+  const zero = await definition('x = "data/a.csv:0"', 'a.csv');
+  assert.deepEqual([zero.line, zero.character], [0, 0]);
+});
+
+test('a path in a very long line', async () => {
+  const text = `${'x'.repeat(5000)} "data/a.csv" ${'y'.repeat(5000)}`;
+  assert.equal((await definition(text, 'a.csv')).text, 'data/a.csv');
+});
+
+test('notebook cells', async () => {
+  const result = await definition('x = "helper.py"', 'helper', 0, {}, 'src/analysis.ipynb', 'vscode-notebook-cell');
+  assert.equal(result.target, 'src/helper.py');
+});
+
 test('a path outside of quotes, with the cursor right after it', async () => {
   const result = await definition('# see docs/guide.md.', 'guide.md', 'guide.md'.length);
   assert.equal(result.text, 'docs/guide.md');
