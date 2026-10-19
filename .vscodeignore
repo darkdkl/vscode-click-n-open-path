@@ -4,3 +4,4 @@
 .github/**
 *.vsix
 images/*.svg
+test/**
