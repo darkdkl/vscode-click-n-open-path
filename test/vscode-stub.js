@@ -1,3 +1,4 @@
+const path = require('path');
 const manifest = require('../package.json');
 
 const DEFAULTS = Object.fromEntries(
@@ -54,6 +55,12 @@ const state = {
   workspaceFolders: [],
   configListeners: new Set(),
   registrations: [],
+  commands: new Map(),
+  executed: [],
+  statusMessages: [],
+  quickPicks: [],
+  pick: (items) => items[0],
+  activeTextEditor: undefined,
 };
 
 function register(kind, selector, provider) {
@@ -84,9 +91,35 @@ module.exports = {
     get workspaceFolders() {
       return state.workspaceFolders;
     },
+    asRelativePath(p) {
+      const folder = state.workspaceFolders.find((f) => p.startsWith(f.uri.fsPath + '/'));
+      return folder ? path.relative(folder.uri.fsPath, p) : p;
+    },
     onDidChangeConfiguration(listener) {
       state.configListeners.add(listener);
       return { dispose: () => state.configListeners.delete(listener) };
+    },
+  },
+  window: {
+    get activeTextEditor() {
+      return state.activeTextEditor;
+    },
+    async showQuickPick(items, options) {
+      state.quickPicks.push({ items, options });
+      return state.pick(items);
+    },
+    setStatusBarMessage(text) {
+      state.statusMessages.push(text);
+      return { dispose() {} };
+    },
+  },
+  commands: {
+    registerCommand(id, handler) {
+      state.commands.set(id, handler);
+      return { dispose: () => state.commands.delete(id) };
+    },
+    async executeCommand(id, ...args) {
+      state.executed.push({ id, args });
     },
   },
   languages: {

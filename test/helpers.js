@@ -27,6 +27,12 @@ function reset() {
   state.workspaceFolders = [{ uri: vscode.Uri.file(PROJECT) }];
   state.configListeners.clear();
   state.registrations = [];
+  state.commands.clear();
+  state.executed = [];
+  state.statusMessages = [];
+  state.quickPicks = [];
+  state.pick = (items) => items[0];
+  state.activeTextEditor = undefined;
 }
 
 function activate(settings = {}) {
@@ -121,6 +127,51 @@ async function definition(text, needle, shift = 0, settings = {}, file, scheme) 
   };
 }
 
+function selectionAt(start, end = start) {
+  const isSingleLine = start.line === end.line;
+  return {
+    start,
+    end,
+    active: end,
+    isEmpty: start.line === end.line && start.character === end.character,
+    isSingleLine,
+  };
+}
+
+async function openAtCursor(text, { cursor, select, shift = 0, file, scheme, settings = {}, pick } = {}) {
+  activate(settings);
+  state.executed = [];
+  state.statusMessages = [];
+  state.quickPicks = [];
+  state.pick = pick ?? ((items) => items[0]);
+  const doc = createDocument(text, file, scheme);
+  let selection;
+  if (select) {
+    const start = doc.positionOf(select);
+    selection = selectionAt(start, doc.positionAt(text.indexOf(select) + select.length));
+  } else {
+    selection = selectionAt(doc.positionOf(cursor, shift));
+  }
+  state.activeTextEditor = { document: doc, selection };
+  await state.commands.get('clickOpenPath.openPathAtCursor')();
+  const opened = state.executed
+    .filter((e) => e.id === 'vscode.open')
+    .map(({ args: [uri, options] }) => {
+      const result = { target: path.relative(PROJECT, uri.fsPath) };
+      if (options.selection) {
+        result.line = options.selection.start.line;
+        result.character = options.selection.start.character;
+      }
+      return result;
+    });
+  return {
+    opened,
+    picks: state.quickPicks.map((q) => q.items.map((i) => i.label)),
+    descriptions: state.quickPicks.map((q) => q.items.map((i) => i.description)),
+    status: state.statusMessages,
+  };
+}
+
 async function watchStat(run, exists = () => false) {
   const original = fs.promises.stat;
   const calls = [];
@@ -149,5 +200,6 @@ module.exports = {
   activeRegistrations,
   links,
   definition,
+  openAtCursor,
   watchStat,
 };

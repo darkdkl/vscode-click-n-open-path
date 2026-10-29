@@ -31,6 +31,7 @@ const FILE_SCHEMES = ['file', 'vscode-notebook-cell'];
 const STAT_TTL_MS = 2000;
 const STAT_CACHE_LIMIT = 10000;
 const LINE_WINDOW = 1000;
+const STATUS_TIMEOUT_MS = 4000;
 
 function looksLikePath(s: string): boolean {
   if (s.length < 2 || s.length > 500) return false;
@@ -143,6 +144,22 @@ function overlaps(a: Candidate, b: Candidate): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
+function contains(candidate: Candidate, ch: number): boolean {
+  return candidate.start <= ch && ch <= candidate.end;
+}
+
+function lineCandidates(lineText: string, ch: number, config: vscode.WorkspaceConfiguration): Candidate[] {
+  const from = lineText.length > 2 * LINE_WINDOW ? Math.max(0, ch - LINE_WINDOW) : 0;
+  const text = lineText.slice(from, from + 2 * LINE_WINDOW);
+  const candidates = quotedCandidates(text, from);
+  if (config.get<boolean>('unquotedPaths')) candidates.push(...bareCandidates(text, from));
+  return candidates;
+}
+
+function targetPosition(found: Found): vscode.Position {
+  return new vscode.Position(found.line ? found.line - 1 : 0, found.col ? found.col - 1 : 0);
+}
+
 class PathLinkProvider implements vscode.DocumentLinkProvider {
   async provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken) {
     const text = document.getText();
@@ -177,31 +194,83 @@ class PathLinkProvider implements vscode.DocumentLinkProvider {
 
 class PathDefinitionProvider implements vscode.DefinitionProvider {
   async provideDefinition(document: vscode.TextDocument, position: vscode.Position) {
-    const lineText = document.lineAt(position.line).text;
     const ch = position.character;
-    const from = lineText.length > 2 * LINE_WINDOW ? Math.max(0, ch - LINE_WINDOW) : 0;
-    const text = lineText.slice(from, from + 2 * LINE_WINDOW);
-    const contains = (c: Candidate) => c.start <= ch && ch <= c.end;
-
     const config = settings(document);
-    const candidates = quotedCandidates(text, from).filter(contains);
-    if (config.get<boolean>('unquotedPaths')) candidates.push(...bareCandidates(text, from).filter(contains));
+    const candidates = lineCandidates(document.lineAt(position.line).text, ch, config).filter((c) =>
+      contains(c, ch)
+    );
 
     const roots = candidateRoots(document, config);
     for (const c of candidates) {
       const found = await resolveCandidate(c, roots);
       if (!found) continue;
-      const line = found.line ? found.line - 1 : 0;
-      const col = found.col ? found.col - 1 : 0;
+      const target = targetPosition(found);
       const link: vscode.LocationLink = {
         originSelectionRange: new vscode.Range(position.line, found.start, position.line, found.end),
         targetUri: vscode.Uri.file(found.resolved),
-        targetRange: new vscode.Range(line, col, line, col),
+        targetRange: new vscode.Range(target, target),
       };
       return [link];
     }
     return null;
   }
+}
+
+async function openFound(found: Found): Promise<void> {
+  const options: vscode.TextDocumentShowOptions = {};
+  if (found.line) {
+    const target = targetPosition(found);
+    options.selection = new vscode.Range(target, target);
+  }
+  await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(found.resolved), options);
+}
+
+async function pickAndOpen(found: Found[], lineText: string, ch: number): Promise<void> {
+  const distance = (f: Found) => (ch < f.start ? f.start - ch : ch - f.end);
+  const items = [...found]
+    .sort((a, b) => distance(a) - distance(b))
+    .map((f) => ({
+      label: lineText.slice(f.start, f.end),
+      description: vscode.workspace.asRelativePath(f.resolved),
+      found: f,
+    }));
+  const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Choose a file to open' });
+  if (picked) await openFound(picked.found);
+}
+
+async function openPathAtCursor(): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) return;
+  const { document, selection } = editor;
+  const config = settings(document);
+  const roots = candidateRoots(document, config);
+
+  const text = document.getText(selection).trim().replace(/^["'`]+|["'`]+$/g, '');
+  const selected = /[\r\n]/.test(text) ? '' : text;
+  if (selected) {
+    const found = await resolveCandidate(parseCandidate(0, selected, false), roots);
+    if (found) return openFound(found);
+  }
+
+  const cursor = selection.isEmpty ? selection.active : selection.start;
+  const ch = cursor.character;
+  const lineText = document.lineAt(cursor.line).text;
+  const candidates = lineCandidates(lineText, ch, config);
+  const found: Found[] = [];
+  for (const r of await Promise.all(candidates.map((c) => resolveCandidate(c, roots)))) {
+    if (r && !found.some((f) => overlaps(f, r))) found.push(r);
+  }
+
+  const atCursor = found.find((f) => contains(f, ch));
+  if (atCursor) return openFound(atCursor);
+  if (found.length === 1) return openFound(found[0]);
+  if (found.length > 1) return pickAndOpen(found, lineText, ch);
+
+  const missing = selected || candidates.find((c) => contains(c, ch))?.raw;
+  vscode.window.setStatusBarMessage(
+    `$(info) ${missing ? `File not found: ${missing}` : 'No file path on this line'}`,
+    STATUS_TIMEOUT_MS
+  );
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -219,6 +288,7 @@ export function activate(context: vscode.ExtensionContext): void {
   register();
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('clickOpenPath.openPathAtCursor', openPathAtCursor),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('clickOpenPath')) register();
     }),

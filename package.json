@@ -3,7 +3,7 @@
   "displayName": "Click'n'Open Path",
   "description": "Ctrl/Cmd+Click a file path in your code, comments or configs to open the file.",
   "icon": "images/icon.png",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "dark-dmake",
   "license": "SEE LICENSE IN LICENSE.txt",
   "bugs": {
@@ -46,6 +46,21 @@
     "virtualWorkspaces": false
   },
   "contributes": {
+    "commands": [
+      {
+        "command": "clickOpenPath.openPathAtCursor",
+        "title": "Open Path at Cursor",
+        "category": "Click'n'Open Path"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "clickOpenPath.openPathAtCursor",
+        "key": "alt+o",
+        "mac": "cmd+alt+o",
+        "when": "editorTextFocus"
+      }
+    ],
     "configuration": {
       "title": "Click'n'Open Path",
       "properties": {

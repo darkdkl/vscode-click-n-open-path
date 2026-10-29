@@ -20,6 +20,19 @@ It works in any language and in Jupyter notebooks. Like Go to Definition, a path
 
 To underline all the paths that can be opened, all the time, turn on `clickOpenPath.underline`.
 
+### Keyboard
+
+Press **Alt+O** (**Cmd+Alt+O** on macOS) to open a path without the mouse:
+
+- with the cursor on a path, that path is opened;
+- with the cursor anywhere else on a line with one path, that path is opened;
+- with several paths on the line, pick one from a list, the nearest to the cursor first;
+- with text selected, the selected text is opened, which helps with paths that aren't found by themselves (spaces, brackets, file names without `/`). If it isn't a file, the line is used as if nothing was selected.
+
+The command is **Click'n'Open Path: Open Path at Cursor**; change its shortcut in Keyboard Shortcuts. With the cursor on a path, **F12** also opens it, and **Ctrl+K F12** opens it to the side, unless `clickOpenPath.underline` is on.
+
+With Vim emulation, you can bind a key such as `gf` to `clickOpenPath.openPathAtCursor`.
+
 ### Install
 
 Search for **Click'n'Open Path** in the Extensions view of VS Code, or run `code --install-extension dark-dmake.click-n-open-path`.
