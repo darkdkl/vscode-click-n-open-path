@@ -1,5 +1,10 @@
 # Click'n'Open Path Changelog
 
+## 0.6.0
+
+- Open a path from the keyboard: **Alt+O** (**Cmd+Alt+O** on macOS), command **Open Path at Cursor**. It opens the path under the cursor, or the only path on the line, or lets you pick one from a list, the nearest first. Selected text is opened as a path
+- The extension is written in TypeScript
+
 ## 0.5.0
 
 - Jupyter notebooks: paths in cells are resolved against the notebook folder

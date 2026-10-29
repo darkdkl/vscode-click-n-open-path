@@ -48,3 +48,11 @@ test('deactivation removes the provider', () => {
   context.subscriptions.forEach((d) => d.dispose());
   assert.deepEqual(kinds(), []);
 });
+
+test('the Open Path at Cursor command lives as long as the extension', () => {
+  const { commands } = require('./vscode-stub')._state;
+  const context = activate();
+  assert.ok(commands.has('clickOpenPath.openPathAtCursor'));
+  context.subscriptions.forEach((d) => d.dispose());
+  assert.ok(!commands.has('clickOpenPath.openPathAtCursor'));
+});

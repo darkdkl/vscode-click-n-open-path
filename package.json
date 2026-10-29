@@ -3,7 +3,7 @@
   "displayName": "Click'n'Open Path",
   "description": "Ctrl/Cmd+Click a file path in your code, comments or configs to open the file.",
   "icon": "images/icon.png",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "dark-dmake",
   "license": "SEE LICENSE IN LICENSE.txt",
   "bugs": {
@@ -38,7 +38,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./extension.js",
+  "main": "./out/extension.js",
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true
@@ -46,6 +46,21 @@
     "virtualWorkspaces": false
   },
   "contributes": {
+    "commands": [
+      {
+        "command": "clickOpenPath.openPathAtCursor",
+        "title": "Open Path at Cursor",
+        "category": "Click'n'Open Path"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "clickOpenPath.openPathAtCursor",
+        "key": "alt+o",
+        "mac": "cmd+alt+o",
+        "when": "editorTextFocus && !isInEmbeddedEditor && !scmRepository && !inChatInput && !commentEditorFocused && !inDebugRepl"
+      }
+    ],
     "configuration": {
       "title": "Click'n'Open Path",
       "properties": {
@@ -79,11 +94,17 @@
     }
   },
   "scripts": {
-    "check": "node --check extension.js",
-    "test": "node --test test/*.test.js",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "typecheck": "tsc -p ./ --noEmit",
+    "test": "npm run compile && node --test test/*.test.js",
     "package": "vsce package --out click-n-open-path-$npm_package_version.vsix"
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.9.2"
+    "@types/node": "^20.19.43",
+    "@types/vscode": "~1.80.0",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^7.0.2"
   }
 }
