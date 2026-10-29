@@ -14,7 +14,7 @@ const HOME = path.join(FIXTURES, 'home');
 process.env.HOME = HOME;
 
 const vscode = require('vscode');
-const extension = require('../extension');
+const extension = require('../out/extension');
 
 const state = vscode._state;
 let context = null;

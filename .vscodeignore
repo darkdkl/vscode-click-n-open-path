@@ -5,3 +5,6 @@
 *.vsix
 images/*.svg
 test/**
+src/**
+tsconfig.json
+**/*.map
