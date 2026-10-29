@@ -58,7 +58,7 @@
         "command": "clickOpenPath.openPathAtCursor",
         "key": "alt+o",
         "mac": "cmd+alt+o",
-        "when": "editorTextFocus"
+        "when": "editorTextFocus && !isInEmbeddedEditor && !scmRepository && !inChatInput && !commentEditorFocused && !inDebugRepl"
       }
     ],
     "configuration": {

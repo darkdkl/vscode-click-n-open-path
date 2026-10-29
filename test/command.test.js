@@ -7,9 +7,14 @@ beforeEach(reset);
 
 const twoPaths = 'cp "data/a.csv" "docs/guide.md"  # copy';
 
-test('Alt+O (Cmd+Alt+O on macOS) runs the command in the editor', () => {
+test('Alt+O (Cmd+Alt+O on macOS) runs the command in the editor, not in other input boxes', () => {
   assert.deepEqual(manifest.contributes.keybindings, [
-    { command: 'clickOpenPath.openPathAtCursor', key: 'alt+o', mac: 'cmd+alt+o', when: 'editorTextFocus' },
+    {
+      command: 'clickOpenPath.openPathAtCursor',
+      key: 'alt+o',
+      mac: 'cmd+alt+o',
+      when: 'editorTextFocus && !isInEmbeddedEditor && !scmRepository && !inChatInput && !commentEditorFocused && !inDebugRepl',
+    },
   ]);
   assert.deepEqual(manifest.contributes.commands.map((c) => c.command), ['clickOpenPath.openPathAtCursor']);
 });
@@ -40,6 +45,19 @@ test('several paths and the cursor on none: a list, nearest first', async () => 
 test('the list follows the cursor', async () => {
   const { picks } = await openAtCursor(twoPaths, { cursor: 'cp' });
   assert.deepEqual(picks, [['data/a.csv', 'docs/guide.md']]);
+});
+
+test('the same file twice on the line is opened without a list', async () => {
+  const same = await openAtCursor('diff data/a.csv ./data/a.csv  # same', { cursor: 'same' });
+  assert.deepEqual([same.opened, same.picks], [[{ target: 'data/a.csv' }], []]);
+  const lines = await openAtCursor('see data/a.csv:1 and data/a.csv:2  # lines', { cursor: 'lines' });
+  assert.deepEqual(lines.picks, [['data/a.csv:2', 'data/a.csv:1']]);
+});
+
+test('$( in paths is shown as text in the list, not as an icon', async () => {
+  const { picks, descriptions } = await openAtCursor('cp "data/$(tag).csv" "docs/guide.md"  # copy', { cursor: 'copy' });
+  assert.deepEqual(picks, [['docs/guide.md', 'data/\\$(tag).csv']]);
+  assert.deepEqual(descriptions, [['docs/guide.md', 'data/\\$(tag).csv']]);
 });
 
 test('closing the list opens nothing', async () => {
@@ -88,6 +106,14 @@ test('nothing found: a short message in the status bar', async () => {
   assert.deepEqual([missing.opened, missing.status], [[], ['$(info) File not found: data/missing.csv']]);
   const selected = await openAtCursor('see nothing here', { select: 'nothing' });
   assert.deepEqual(selected.status, ['$(info) File not found: nothing']);
+});
+
+test('a long selection is shortened in the message', async () => {
+  const long = 'y'.repeat(200);
+  const { status } = await openAtCursor(long, { select: long });
+  assert.deepEqual(status, [`$(info) File not found: ${'y'.repeat(79)}…`]);
+  const icon = await openAtCursor('see $(nope) here', { select: '$(nope)' });
+  assert.deepEqual(icon.status, ['$(info) File not found: \\$(nope)']);
 });
 
 test('unquotedPaths: false is respected', async () => {

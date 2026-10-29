@@ -32,6 +32,7 @@ const STAT_TTL_MS = 2000;
 const STAT_CACHE_LIMIT = 10000;
 const LINE_WINDOW = 1000;
 const STATUS_TIMEOUT_MS = 4000;
+const STATUS_TEXT_LIMIT = 80;
 
 function looksLikePath(s: string): boolean {
   if (s.length < 2 || s.length > 500) return false;
@@ -225,15 +226,24 @@ async function openFound(found: Found): Promise<void> {
   await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(found.resolved), options);
 }
 
-async function pickAndOpen(found: Found[], lineText: string, ch: number): Promise<void> {
-  const distance = (f: Found) => (ch < f.start ? f.start - ch : ch - f.end);
-  const items = [...found]
-    .sort((a, b) => distance(a) - distance(b))
-    .map((f) => ({
-      label: lineText.slice(f.start, f.end),
-      description: vscode.workspace.asRelativePath(f.resolved),
-      found: f,
-    }));
+function escapeIcons(text: string): string {
+  return text.replace(/\$\(/g, '\\$(');
+}
+
+function shorten(text: string): string {
+  return text.length > STATUS_TEXT_LIMIT ? `${text.slice(0, STATUS_TEXT_LIMIT - 1)}…` : text;
+}
+
+function sameTarget(a: Found, b: Found): boolean {
+  return a.resolved === b.resolved && a.line === b.line && a.col === b.col;
+}
+
+async function pickAndOpen(targets: Found[], lineText: string): Promise<void> {
+  const items = targets.map((f) => ({
+    label: escapeIcons(lineText.slice(f.start, f.end)),
+    description: escapeIcons(vscode.workspace.asRelativePath(f.resolved)),
+    found: f,
+  }));
   const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Choose a file to open' });
   if (picked) await openFound(picked.found);
 }
@@ -263,12 +273,17 @@ async function openPathAtCursor(): Promise<void> {
 
   const atCursor = found.find((f) => contains(f, ch));
   if (atCursor) return openFound(atCursor);
-  if (found.length === 1) return openFound(found[0]);
-  if (found.length > 1) return pickAndOpen(found, lineText, ch);
+
+  const distance = (f: Found) => (ch < f.start ? f.start - ch : ch - f.end);
+  const targets = [...found]
+    .sort((a, b) => distance(a) - distance(b))
+    .filter((f, i, all) => all.findIndex((g) => sameTarget(f, g)) === i);
+  if (targets.length === 1) return openFound(targets[0]);
+  if (targets.length > 1) return pickAndOpen(targets, lineText);
 
   const missing = selected || candidates.find((c) => contains(c, ch))?.raw;
   vscode.window.setStatusBarMessage(
-    `$(info) ${missing ? `File not found: ${missing}` : 'No file path on this line'}`,
+    `$(info) ${missing ? `File not found: ${escapeIcons(shorten(missing))}` : 'No file path on this line'}`,
     STATUS_TIMEOUT_MS
   );
 }

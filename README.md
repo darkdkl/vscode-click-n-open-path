@@ -27,7 +27,9 @@ Press **Alt+O** (**Cmd+Alt+O** on macOS) to open a path without the mouse:
 - with the cursor on a path, that path is opened;
 - with the cursor anywhere else on a line with one path, that path is opened;
 - with several paths on the line, pick one from a list, the nearest to the cursor first;
-- with text selected, the selected text is opened, which helps with paths that aren't found by themselves (spaces, brackets, file names without `/`). If it isn't a file, the line is used as if nothing was selected.
+- with text selected, the selected text is opened, which helps with paths that aren't found by themselves (spaces, brackets, file names without `/`). If it isn't a file, the line where the selection starts is used, as described above.
+
+Paths are looked up the same way as for Ctrl+click, with `clickOpenPath.searchRoots`; with `clickOpenPath.unquotedPaths` off, only quoted paths are found on the line, while selected text is opened either way.
 
 The command is **Click'n'Open Path: Open Path at Cursor**; change its shortcut in Keyboard Shortcuts. With the cursor on a path, **F12** also opens it, and **Ctrl+K F12** opens it to the side, unless `clickOpenPath.underline` is on.
 
